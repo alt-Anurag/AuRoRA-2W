@@ -515,9 +515,9 @@ def process_telemetry_file(
     y_col = cols.get(yaw_axis.lower(),   yaw_axis)
 
     ts          = df[col_time].values
-    roll_rates  = df[r_col].values
-    pitch_rates = df[p_col].values if p_col in df.columns else np.zeros(len(df))
-    yaw_rates   = df[y_col].values if y_col in df.columns else np.zeros(len(df))
+    roll_rates  = np.degrees(df[r_col].values)
+    pitch_rates = np.degrees(df[p_col].values) if p_col in df.columns else np.zeros(len(df))
+    yaw_rates   = np.degrees(df[y_col].values) if y_col in df.columns else np.zeros(len(df))
     speeds      = (df[col_speed].values
                    if col_speed and col_speed in df.columns
                    else np.zeros(len(df)))
