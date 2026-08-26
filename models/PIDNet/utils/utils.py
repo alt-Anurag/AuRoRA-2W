@@ -128,27 +128,28 @@ def create_logger(cfg, cfg_name, phase='train'):
 
 def get_confusion_matrix(label, pred, size, num_class, ignore=-1):
     """
-    Calcute the confusion matrix by given label and pred
+    Calculate the confusion matrix entirely on the GPU to avoid CPU bottleneck
     """
-    output = pred.cpu().numpy().transpose(0, 2, 3, 1)
-    seg_pred = np.asarray(np.argmax(output, axis=3), dtype=np.uint8)
-    seg_gt = np.asarray(
-    label.cpu().numpy()[:, :size[-2], :size[-1]], dtype=int)
-
-    ignore_index = seg_gt != ignore
-    seg_gt = seg_gt[ignore_index]
-    seg_pred = seg_pred[ignore_index]
-
-    index = (seg_gt * num_class + seg_pred).astype('int32')
-    label_count = np.bincount(index)
-    confusion_matrix = np.zeros((num_class, num_class))
-
-    for i_label in range(num_class):
-        for i_pred in range(num_class):
-            cur_index = i_label * num_class + i_pred
-            if cur_index < len(label_count):
-                confusion_matrix[i_label,
-                                 i_pred] = label_count[cur_index]
+    # Get predictions (argmax over channels)
+    seg_pred = torch.argmax(pred, dim=1) # Shape: (B, H, W)
+    seg_gt = label[:, :size[-2], :size[-1]]
+    
+    # Flatten them
+    seg_pred = seg_pred.flatten()
+    seg_gt = seg_gt.flatten()
+    
+    # Ignore index mask
+    valid_mask = (seg_gt != ignore)
+    seg_gt = seg_gt[valid_mask]
+    seg_pred = seg_pred[valid_mask]
+    
+    # Calculate bincount using torch (which is extremely fast on GPU)
+    index = seg_gt * num_class + seg_pred
+    label_count = torch.bincount(index, minlength=num_class*num_class)
+    
+    # Reshape and return as numpy array to match the rest of the code expectations
+    confusion_matrix = label_count.view(num_class, num_class).cpu().numpy()
+    
     return confusion_matrix
 
 def adjust_learning_rate(optimizer, base_lr, max_iters, 
