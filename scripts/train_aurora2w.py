@@ -31,24 +31,27 @@ class AuRoRA2W_FullModel(nn.Module):
         self.bd_loss = bd_loss
 
     def forward(self, inputs, labels, bd_gts):
-        # --- SYNTHETIC ROLL AUGMENTATION ---
+        # --- SYNTHETIC ROLL AUGMENTATION (FIXED) ---
         B = inputs.size(0)
         # Generate random roll angles between -30 and 30 degrees
         roll_angles = (torch.rand(B, device=inputs.device) * 60.0) - 30.0
         
-        # Rotate inputs and ground truths
-        rot_inputs = torch.stack([TF.rotate(inputs[i], float(roll_angles[i])) for i in range(B)])
+        # Rotate inputs (fill corners with ImageNet Mean to avoid pitch-black contrast shocks)
+        rot_inputs = torch.stack([TF.rotate(inputs[i], float(roll_angles[i]), fill=[0.0, 0.0, 0.0]) for i in range(B)])
         
-        # For labels, we use nearest interpolation internally during rotation by casting to float then back
-        rot_labels = torch.stack([TF.rotate(labels[i].unsqueeze(0).float(), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST).squeeze(0).long() for i in range(B)])
-        rot_bd = torch.stack([TF.rotate(bd_gts[i].unsqueeze(0), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST).squeeze(0) for i in range(B)])
+        # CRITICAL FIX: Rotate labels and fill corners with 255 (Ignore Index). 
+        # This prevents the network from thinking black corners are "Road" (Class 0).
+        rot_labels = torch.stack([TF.rotate(labels[i].unsqueeze(0).float(), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST, fill=[255.0]).squeeze(0).long() for i in range(B)])
+        
+        # Rotate boundary ground truths
+        rot_bd = torch.stack([TF.rotate(bd_gts[i].unsqueeze(0), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST, fill=[0.0]).squeeze(0) for i in range(B)])
 
         # --- FORWARD PASS (Injecting roll_angles into AuRoRA2W) ---
         out = self.model(rot_inputs, roll_angles=roll_angles)
         
         # --- LOSS CALCULATION ---
         ph, pw = out[0].size(2), out[0].size(3)
-        h, w = rot_labels.size(1), rot_labels.size(2)
+        h, w = labels.size(1), labels.size(2)
         if ph != h or pw != w:
             for i in range(len(out)):
                 out[i] = F.interpolate(out[i], size=(h, w), mode='bilinear', align_corners=True)
@@ -75,7 +78,6 @@ def parse_args():
     config.defrost()
     config.DATASET.ROOT = 'models/PIDNet/data/'
     config.MODEL.PRETRAINED = 'models/PIDNet/pretrained_models/imagenet/PIDNet_S_ImageNet.pth.tar'
-    # 6GB VRAM Optimization & Hardware limits:
     config.TRAIN.IMAGE_SIZE = [512, 512]
     config.TRAIN.BATCH_SIZE_PER_GPU = 2
     config.GPUS = (0,)
@@ -166,6 +168,7 @@ def main():
     
     # Resume logic
     start_epoch = 0
+    base_lr = config.TRAIN.LR
     import glob
     checkpoints = glob.glob(os.path.join(final_output_dir, 'aurora2w_epoch_*.pt'))
     if checkpoints:
@@ -181,6 +184,8 @@ def main():
             # Legacy format recovery
             model.module.load_state_dict(checkpoint)
             start_epoch = int(os.path.basename(latest_cp).split('_')[-1].split('.')[0]) + 1
+            print("[!] Legacy checkpoint detected (No optimizer state). Dropping base learning rate to 0.0001 to prevent momentum shock.")
+            base_lr = 0.0001
 
     num_epochs = config.TRAIN.END_EPOCH
     for epoch in range(start_epoch, num_epochs):
@@ -190,7 +195,7 @@ def main():
             # Apply learning rate decay scheduler per iteration
             cur_iters = epoch * len(trainloader) + i
             max_iters = config.TRAIN.END_EPOCH * len(trainloader)
-            lr = adjust_learning_rate(optimizer, config.TRAIN.LR, max_iters, cur_iters)
+            lr = adjust_learning_rate(optimizer, base_lr, max_iters, cur_iters)
         
             images, labels, bd_gts, _, _ = batch
             images = images.to(device)

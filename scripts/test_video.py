@@ -33,6 +33,9 @@ def input_transform(image):
 def load_pretrained(model, pretrained_path):
     print(f"[*] Loading weights from {pretrained_path}")
     pretrained_dict = torch.load(pretrained_path, map_location='cpu')
+    if 'model_state_dict' in pretrained_dict:
+        pretrained_dict = pretrained_dict['model_state_dict']
+    
     model_dict = model.state_dict()
     
     # The training script saves the AuRoRA2W_FullModel which has a 'model.' prefix
@@ -55,6 +58,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--video', default='data/raw_video/03_033.mp4')
     parser.add_argument('--output', default='data/synced/03_033_segmentation_output.mp4')
+    parser.add_argument('--checkpoint', type=str, default=None, help='Path to specific checkpoint to use')
     args = parser.parse_args()
 
     # Model Config
@@ -69,11 +73,16 @@ def main():
     
     # Find latest checkpoint
     final_output_dir = 'output/cityscapes/pidnet_small_cityscapes'
-    checkpoints = glob.glob(os.path.join(final_output_dir, 'aurora2w_epoch_*.pt'))
-    if not checkpoints:
-        raise FileNotFoundError("No checkpoints found!")
-    latest_cp = max(checkpoints, key=lambda x: int(os.path.basename(x).split('_')[-1].split('.')[0]))
     
+    if args.checkpoint:
+        latest_cp = args.checkpoint
+    else:
+        checkpoints = glob.glob(os.path.join(final_output_dir, 'aurora2w_epoch_*.pt'))
+        if not checkpoints:
+            raise FileNotFoundError("No checkpoints found!")
+        latest_cp = max(checkpoints, key=os.path.getctime)
+    
+    print(f"Loading checkpoint: {latest_cp}")
     model = load_pretrained(model, latest_cp)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
@@ -119,7 +128,7 @@ def main():
                 # Create segmentation map
                 sv_img = np.zeros_like(frame).astype(np.uint8)
                 for i, color in enumerate(color_map):
-                    sv_img[pred == i] = color
+                    sv_img[pred == i] = color[::-1]  # Convert RGB to BGR for OpenCV
                     
                 # Blend with original
                 blended = cv2.addWeighted(frame, 0.5, sv_img, 0.5, 0)

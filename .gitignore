@@ -21,3 +21,14 @@ data/raw_imu/
 # IDEs
 .vscode/
 .idea/
+
+# Logs, Outputs, and Large Media
+output/
+log/
+data/synced/
+*.pt
+*.mp4
+*.png
+*.log
+wait_for_120.ps1
+
