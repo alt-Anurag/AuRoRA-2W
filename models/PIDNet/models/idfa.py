@@ -32,49 +32,48 @@ class IDFAModule(nn.Module):
     def _generate_geometric_prior(self, b, h, w, roll_angles, device):
         """
         Calculates the exact per-pixel (dx, dy) coordinate shifts needed to 
-        rotate the 3x3 receptive field to match the camera's physical roll angle.
+        counteract the camera's physical roll angle.
         
         roll_angles: Tensor of shape (B,) in degrees
         """
-        # 1. Define the standard 3x3 convolution grid (relative to center)
-        k = self.kernel_size
-        grid_y, grid_x = torch.meshgrid(
-            torch.arange(-(k//2), k//2 + 1, device=device, dtype=torch.float32),
-            torch.arange(-(k//2), k//2 + 1, device=device, dtype=torch.float32),
+        # Create a meshgrid representing pixel coordinates
+        y, x = torch.meshgrid(
+            torch.arange(h, device=device, dtype=torch.float32),
+            torch.arange(w, device=device, dtype=torch.float32),
             indexing='ij'
         )
         
-        # Flatten to shape (9,)
-        grid_x = grid_x.reshape(-1)
-        grid_y = grid_y.reshape(-1)
+        # Center the coordinates (Origin at image center)
+        cx, cy = (w - 1) / 2.0, (h - 1) / 2.0
+        x_centered = x - cx
+        y_centered = y - cy
         
-        # Convert roll angles to radians (shape: B, 1)
-        # Note: PyTorch grid convention might require negative angle to match physical tilt.
-        theta = roll_angles.view(b, 1).to(device) * (math.pi / 180.0)
+        # Convert roll angles to radians (shape: B, 1, 1)
+        theta = roll_angles.view(b, 1, 1).to(device) * (math.pi / 180.0)
         
+        # Precompute cos and sin
         cos_t = torch.cos(theta)
         sin_t = torch.sin(theta)
         
-        # 2. Rotate the local kernel grid
+        # Calculate rotated coordinates
         # x' = x * cos(theta) - y * sin(theta)
         # y' = x * sin(theta) + y * cos(theta)
-        # shape: (B, 9)
-        x_rot = grid_x.unsqueeze(0) * cos_t - grid_y.unsqueeze(0) * sin_t
-        y_rot = grid_x.unsqueeze(0) * sin_t + grid_y.unsqueeze(0) * cos_t
+        x_rot = x_centered.unsqueeze(0) * cos_t - y_centered.unsqueeze(0) * sin_t
+        y_rot = x_centered.unsqueeze(0) * sin_t + y_centered.unsqueeze(0) * cos_t
         
-        # 3. Calculate the local offsets (Target - Source)
-        dx = x_rot - grid_x.unsqueeze(0)
-        dy = y_rot - grid_y.unsqueeze(0)
+        # The offset is the difference between rotated and original coordinates
+        # Delta = Target - Source
+        dx = x_rot - x_centered.unsqueeze(0)
+        dy = y_rot - y_centered.unsqueeze(0)
         
-        # 4. Interleave dx and dy for the 18 channels (B, 18)
-        # DCN expects: [dx_0, dy_0, dx_1, dy_1, ...] or similar.
-        # Wait, the original code did: torch.cat([dx.unsqueeze(1), dy.unsqueeze(1)], dim=1) then repeat.
-        # This meant [dx, dy, dx, dy...]
-        # We will interleave them.
-        offsets = torch.stack([dx, dy], dim=2).view(b, self.num_offsets)
+        # Stack into shape (B, 2, H, W)
+        base_offsets = torch.cat([dx.unsqueeze(1), dy.unsqueeze(1)], dim=1)
         
-        # 5. Broadcast to the entire spatial dimension (B, 18, H, W)
-        geom_offsets = offsets.view(b, self.num_offsets, 1, 1).expand(b, self.num_offsets, h, w)
+        # DCN expects offsets for every point in the kernel. 
+        # By repeating the central offset 9 times, we shift the entire 3x3 kernel 
+        # cleanly to the un-rotated physical location.
+        # Shape becomes (B, 18, H, W)
+        geom_offsets = base_offsets.repeat(1, self.kernel_size ** 2, 1, 1)
         
         return geom_offsets
 
