@@ -116,48 +116,30 @@ def main():
     with torch.no_grad():
         # Autocast for mixed precision inference to avoid OOM and speed it up
         with torch.amp.autocast('cuda'):
-            for frame_idx in tqdm(range(total_frames)):
+            for frame_idx, _ in enumerate(tqdm(range(total_frames))):
                 ret, frame = cap.read()
                 if not ret:
                     break
-                    
+                
+                # Preprocess
                 img = input_transform(frame)
-                img = img.transpose(2, 0, 1)
+                img = img.transpose((2, 0, 1)).copy()
                 img_tensor = torch.from_numpy(img).unsqueeze(0).to(device)
                 
-                # Aurora2W has a roll_angles argument
+                # Extract true roll_angles from IMU data
                 if imu_df is not None and frame_idx < len(imu_df):
                     roll_val = float(imu_df.iloc[frame_idx]['roll_deg'])
                     roll_angles = torch.tensor([roll_val], device=device, dtype=torch.float32)
                 else:
                     roll_angles = torch.zeros(1, device=device)
                     
-                # STN Un-Rotate: Perfectly align the horizon before processing
-                import torchvision.transforms.functional as TF
-                stn_img = TF.rotate(img_tensor.squeeze(0), -float(roll_angles[0]), fill=[0.0, 0.0, 0.0]).unsqueeze(0)
-                
-                # Disable DCN (tell network roll is 0)
-                zero_angles = torch.zeros_like(roll_angles)
-                pred = model(stn_img, roll_angles=zero_angles)
+                pred = model(img_tensor, roll_angles=roll_angles)
                 
                 if isinstance(pred, (list, tuple)):
                     pred = pred[0]
                     
-                # STN Re-Rotate: Tilt the perfectly horizontal prediction back to match the camera!
-                pred = TF.rotate(pred.squeeze(0), float(roll_angles[0]), fill=[0.0]).unsqueeze(0)
-                
-                # Create a valid mask to kill the pink corners
-                valid_mask = torch.ones((1, 1, h, w), device=device)
-                valid_mask = TF.rotate(valid_mask.squeeze(0), -float(roll_angles[0]), fill=[0.0]).unsqueeze(0)
-                valid_mask = TF.rotate(valid_mask.squeeze(0), float(roll_angles[0]), fill=[0.0]).unsqueeze(0)
-                
                 pred = F.interpolate(pred, size=(h, w), mode='bilinear', align_corners=True)
-                # Multiply prediction by mask. Background/ignore class will be 0 (if 0 is not road, or we can just zero out the sv_img later)
-                pred_classes = torch.argmax(pred, dim=1).squeeze(0)
-                
-                # Force corners to class 255 (Ignore) so they don't render
-                pred_classes[valid_mask.squeeze() == 0] = 255
-                pred = pred_classes.cpu().numpy()
+                pred = torch.argmax(pred, dim=1).squeeze(0).cpu().numpy()
                 
                 # Create segmentation map
                 sv_img = np.zeros_like(frame).astype(np.uint8)
