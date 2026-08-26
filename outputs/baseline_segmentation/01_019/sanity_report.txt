@@ -1,0 +1,37 @@
+Sanity Report for Clip 01_019
+==================================================
+
+File: 000001.png
+  - Road Area: 0.00%
+  - Road Contiguity: 0.00%
+  - Top-20% Road (Sky Overlap): 0.00%
+  - Verdict: FAIL
+
+File: 000038.png
+  - Road Area: 0.00%
+  - Road Contiguity: 0.00%
+  - Top-20% Road (Sky Overlap): 0.00%
+  - Verdict: FAIL
+
+File: 000075.png
+  - Road Area: 0.00%
+  - Road Contiguity: 0.00%
+  - Top-20% Road (Sky Overlap): 0.00%
+  - Verdict: FAIL
+
+File: 000112.png
+  - Road Area: 0.00%
+  - Road Contiguity: 0.00%
+  - Top-20% Road (Sky Overlap): 0.00%
+  - Verdict: FAIL
+
+File: 000150.png
+  - Road Area: 0.00%
+  - Road Contiguity: 0.00%
+  - Top-20% Road (Sky Overlap): 0.00%
+  - Verdict: FAIL
+
+Summary:
+Total Frames Processed: 5
+Frames Passed Sanity Check: 0 / 5
+Average Inference Time: 1.610 s/frame (0.62 FPS)
