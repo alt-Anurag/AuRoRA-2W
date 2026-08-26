@@ -31,38 +31,42 @@ class AuRoRA2W_FullModel(nn.Module):
         self.bd_loss = bd_loss
 
     def forward(self, inputs, labels, bd_gts):
-        # --- SYNTHETIC ROLL AUGMENTATION (FIXED) ---
+        # --- SYNTHETIC ROLL AUGMENTATION (STN PIPELINE) ---
         B = inputs.size(0)
-        # Generate random roll angles between -30 and 30 degrees
         roll_angles = (torch.rand(B, device=inputs.device) * 60.0) - 30.0
         
-        # Rotate inputs (fill corners with ImageNet Mean to avoid pitch-black contrast shocks)
-        rot_inputs = torch.stack([TF.rotate(inputs[i], float(roll_angles[i]), fill=[0.0, 0.0, 0.0]) for i in range(B)])
+        # 1. Simulate the tilted camera feed (what the app sees)
+        tilted_inputs = torch.stack([TF.rotate(inputs[i], float(roll_angles[i]), fill=[0.0, 0.0, 0.0]) for i in range(B)])
+        tilted_labels = torch.stack([TF.rotate(labels[i].unsqueeze(0).float(), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST, fill=[255.0]).squeeze(0).long() for i in range(B)])
+        tilted_bd = torch.stack([TF.rotate(bd_gts[i].unsqueeze(0), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST, fill=[0.0]).squeeze(0) for i in range(B)])
         
-        # CRITICAL FIX: Rotate labels and fill corners with 255 (Ignore Index). 
-        # This prevents the network from thinking black corners are "Road" (Class 0).
-        rot_labels = torch.stack([TF.rotate(labels[i].unsqueeze(0).float(), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST, fill=[255.0]).squeeze(0).long() for i in range(B)])
+        # 2. STN Un-Rotate: The network mathematically un-rotates the feed BEFORE processing
+        # This aligns the horizon perfectly. (We use -roll_angles)
+        stn_inputs = torch.stack([TF.rotate(tilted_inputs[i], -float(roll_angles[i]), fill=[0.0, 0.0, 0.0]) for i in range(B)])
         
-        # Rotate boundary ground truths
-        rot_bd = torch.stack([TF.rotate(bd_gts[i].unsqueeze(0), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST, fill=[0.0]).squeeze(0) for i in range(B)])
-
-        # --- FORWARD PASS (Injecting roll_angles into AuRoRA2W) ---
-        out = self.model(rot_inputs, roll_angles=roll_angles)
+        # 3. Forward Pass: Pass roll_angles=0 so IDFAModule is disabled (acting as standard CNN)
+        zero_angles = torch.zeros_like(roll_angles)
+        out = self.model(stn_inputs, roll_angles=zero_angles)
         
-        # --- LOSS CALCULATION ---
+        # 4. Interpolate to original size
         ph, pw = out[0].size(2), out[0].size(3)
         h, w = labels.size(1), labels.size(2)
         if ph != h or pw != w:
             for i in range(len(out)):
                 out[i] = F.interpolate(out[i], size=(h, w), mode='bilinear', align_corners=True)
+                
+        # 5. STN Re-Rotate: Rotate the horizontal predictions BACK to match the tilted real-world frame!
+        out_sem0 = torch.stack([TF.rotate(out[0][i], float(roll_angles[i]), fill=[0.0]) for i in range(B)])
+        out_sem1 = torch.stack([TF.rotate(out[1][i], float(roll_angles[i]), fill=[0.0]) for i in range(B)])
+        out_bd = torch.stack([TF.rotate(out[2][i], float(roll_angles[i]), fill=[0.0]) for i in range(B)])
         
-        loss1 = self.sem_loss([out[0]], rot_labels)
-        loss2 = self.sem_loss([out[1]], rot_labels)
-        loss3 = self.bd_loss(out[2], rot_bd)
+        # 6. Loss Calculation (Comparing re-tilted prediction against tilted ground truth)
+        loss1 = self.sem_loss([out_sem0], tilted_labels)
+        loss2 = self.sem_loss([out_sem1], tilted_labels)
+        loss3 = self.bd_loss(out_bd, tilted_bd)
         
-        # Fake accuracy for API compatibility
         acc = torch.tensor([0.0], device=inputs.device)
-        return loss1 + loss2 + loss3, [out[0], out[1]], acc, [loss1+loss2, loss3]
+        return loss1 + loss2 + loss3, [out_sem0, out_sem1], acc, [loss1+loss2, loss3]
 
 
 def parse_args():
@@ -166,10 +170,12 @@ def main():
     print("[*] Starting AuRoRA-2W Synthetic Roll Training Loop with AMP...")
     model.train()
     
-    # Resume logic
+    # Fix for Learning Rate Shock: Force base_lr to a gentle 0.0001 for fine-tuning
+    base_lr = 0.0001
+    
     start_epoch = 0
-    base_lr = config.TRAIN.LR
     import glob
+    final_output_dir = 'output/cityscapes/pidnet_small_cityscapes'
     checkpoints = glob.glob(os.path.join(final_output_dir, 'aurora2w_epoch_*.pt'))
     if checkpoints:
         latest_cp = max(checkpoints, key=lambda x: int(os.path.basename(x).split('_')[-1].split('.')[0]))
@@ -184,8 +190,7 @@ def main():
             # Legacy format recovery
             model.module.load_state_dict(checkpoint)
             start_epoch = int(os.path.basename(latest_cp).split('_')[-1].split('.')[0]) + 1
-            print("[!] Legacy checkpoint detected (No optimizer state). Dropping base learning rate to 0.0001 to prevent momentum shock.")
-            base_lr = 0.0001
+            print("[!] Legacy checkpoint detected (No optimizer state). Momentum reset.")
 
     num_epochs = config.TRAIN.END_EPOCH
     for epoch in range(start_epoch, num_epochs):
