@@ -89,3 +89,27 @@ Do not train blindly on IDD. Build a **Composite Dataset**:
 * **Potholes:** RDD2022 India Subset (Class \D40\)
 * **Lanes:** BDD100K Lane Subset
 
+
+---
+
+## ?? Future Outlook: Phase 3 (Mobile Edge Deployment)
+
+**The Vision:** Running the final AuRoRA-2W model natively on a smartphone (Android/iOS) mounted on the bike. The app will feed live camera frames + real-time smartphone IMU data (gyro/accel) directly into the model to output Drivable Area, Lane Lines, and Pothole Bounding Boxes in real-time.
+
+**Is it feasible? YES, absolutely.** Here is the technical breakdown:
+
+1. **Model Size & Parameters:**
+   * **Base Architecture:** YOLOPv2 has roughly **38 Million parameters**. 
+   * **Storage Size:** Uncompressed (FP32), it sits around 150 MB. However, for mobile deployment, you will apply **INT8 Quantization**. This reduces the model size to just **~38 - 40 MB**, which is incredibly lightweight for an app payload.
+
+2. **Real-Time Performance:**
+   * Modern smartphone chips (Apple A-series Neural Engine, Snapdragon NPUs) are specifically built to run YOLO-style architectures. An INT8 quantized YOLOPv2 can comfortably run at **30+ FPS** on a modern smartphone, leaving plenty of overhead for the app UI.
+
+3. **The Sensor Fusion Integration:**
+   * Smartphone APIs (CoreMotion for iOS, SensorManager for Android) provide Gyroscope, Accelerometer, and GPS data at 100Hz+. 
+   * You will write a simple sensor fusion script (like a Kalman filter) in the app to calculate the smartphone's real-time **Roll Angle**. This scalar value is then passed into the model's ONNX/TFLite runtime right alongside the image tensor.
+
+4. **?? The Massive Engineering Hurdle (WARNING FOR PHASE 2):**
+   * **The Problem:** In Phase 1, our \IDFAModule\ uses **Deformable Convolutions (DCN)** to un-rotate the features based on the IMU data. DCN is notoriously difficult to deploy on mobile edge runtimes (TFLite / CoreML) because they often lack native operator support for dynamic convolution offsets.
+   * **The Solution:** If your teammate builds Phase 2 entirely reliant on DCN, Phase 3 will crash during mobile conversion. Your teammate must either ensure they write a custom C++ operator for the mobile export, OR (highly recommended) they should design the tilt-compensation to use **Spatial Transformer Networks (STN)** / \grid_sample\. STNs use standard affine transformation matrices, which are 100% natively supported by all mobile NPUs!
+
