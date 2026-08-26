@@ -1,0 +1,23 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Datasets and Models (Very Large Files)
+models/PIDNet/data/
+models/PIDNet/pretrained_models/
+data/raw_video/
+data/raw_imu/
+
+# IDEs
+.vscode/
+.idea/

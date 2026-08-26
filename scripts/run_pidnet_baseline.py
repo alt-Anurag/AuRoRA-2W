@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 from PIL import Image
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'models', 'PIDNet'))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models', 'PIDNet'))
 import models.pidnet
 
 # Cityscapes mean/std
@@ -51,7 +51,7 @@ def load_pretrained(model, pretrained_path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default='pidnet-s', choices=['pidnet-s', 'pidnet-m', 'pidnet-l'])
-    parser.add_argument('--weights', default='models/pretrained_models/cityscapes/PIDNet_S_Cityscapes_val.pt')
+    parser.add_argument('--weights', default='models/PIDNet/pretrained_models/cityscapes/PIDNet_S_Cityscapes_val.pt')
     parser.add_argument('--image', default='samples/test_frame.png')
     parser.add_argument('--output', default='samples/test_frame_out.png')
     args = parser.parse_args()
