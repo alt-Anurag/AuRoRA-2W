@@ -63,3 +63,29 @@ To port the tilt-compensation logic into YOLOPv2, study these exact files in the
 ### Step 5: Train and Validate
 * Train the modified AuRoRA-2W model on the IDD dataset using OHEM Loss.
 * Validate the inference by feeding it raw motorcycle footage combined with actual IMU roll data (from the NISER dataset) to prove the bounding boxes and segmentation stay glued to the road even when the bike leans 30 degrees into a turn.
+
+---
+
+## ?? Resolving Phase 2 Doubts: How did DrivableNets do it?
+
+**Doubt:** *If the Indian Driving Dataset (IDD) is used, how do we train the model to segment lane lines and detect potholes, since IDD is known to lack strict annotations for these classes? How did the professor's DrivableNets achieve perfect lane and pothole recognition?*
+
+**The Concrete Reality (Backed by Dataset Research):**
+You are absolutely correct. The standard release of the **Indian Driving Dataset (IDD)** focuses on unstructured environments and does **NOT** natively contain a class for 'Potholes', nor does it have strict, highly-defined infrastructure lane lines like Cityscapes. 
+
+If your teammate simply downloads IDD and trains YOLOPv2 on it, the model will **fail** to detect potholes and will struggle with lanes. To replicate the professor's DrivableNets output, your teammate must implement **Dataset Merging**:
+
+1. **Pothole Detection (The RDD2022 Solution):**
+   * **Evidence:** The standard benchmark for pothole detection in India is the **Road Damage Dataset (RDD2020 / RDD2022)**. RDD2022 contains over 47,000 images from multiple countries, including a massive subset specifically collected from India with annotations for potholes (Class \D40\), longitudinal cracks, and alligator cracks in Pascal VOC/YOLO format.
+   * **Action:** Your teammate MUST download the **RDD2022 India Subset** (available on Kaggle/Roboflow) and merge its bounding box annotations into the IDD dataset pool during YOLO training.
+
+2. **Lane Segmentation (Drivable Area vs. Lines):**
+   * **Evidence:** Because Indian roads lack strict lane discipline, IDD focuses heavily on segmenting the **Drivable Area** (the safe physical space) rather than painted lines. DrivableNets likely achieved lane segmentation by either predicting the ego-drivable path, or by mixing IDD with a dataset that has robust lane annotations.
+   * **Action:** To get perfect lane lines, your teammate should inject the **BDD100K Lane Marking Dataset** into the training mix. YOLOPv2 was natively built for BDD100K. By mixing BDD100K (for lane lines) + IDD (for Indian vehicles/rickshaws) + RDD2022 (for Indian potholes), the model will learn to generalize and project lane boundaries even on unstructured roads.
+
+**Summary for the Teammate:**
+Do not train blindly on IDD. Build a **Composite Dataset**:
+* **Base:** IDD (For Indian context, vehicles, pedestrians, and drivable area)
+* **Potholes:** RDD2022 India Subset (Class \D40\)
+* **Lanes:** BDD100K Lane Subset
+
