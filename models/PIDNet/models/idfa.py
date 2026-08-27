@@ -67,7 +67,8 @@ class IDFAModule(nn.Module):
         dy = y_rot - y_centered.unsqueeze(0)
         
         # Stack into shape (B, 2, H, W)
-        base_offsets = torch.cat([dx.unsqueeze(1), dy.unsqueeze(1)], dim=1)
+        # CRITICAL FIX: PyTorch DeformConv2d expects offsets in [dy, dx] order!
+        base_offsets = torch.cat([dy.unsqueeze(1), dx.unsqueeze(1)], dim=1)
         
         # DCN expects offsets for every point in the kernel. 
         # By repeating the central offset 9 times, we shift the entire 3x3 kernel 
