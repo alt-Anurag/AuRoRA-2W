@@ -1,0 +1,2 @@
+version,device name,recording epoch time,recording time,recording timezone,platform,appVersion,device id,sensors,sampleRateMs,standardisation,platform version
+3,SM-G990B2,1788093355991,2026-08-30_12-35-55,Asia/Kolkata,android,1.64,427f7fad-772c-4d95-9ea1-a6396f6c49b1,Accelerometer|Gravity|Gyroscope|Orientation|Magnetometer|Annotation|TotalAcceleration|MagnetometerUncalibrated|GyroscopeUncalibrated|AccelerometerUncalibrated,10|10|10|10|10||10|10|10|10,false,36

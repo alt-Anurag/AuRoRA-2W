@@ -33,8 +33,8 @@ class AuRoRA2W_FullModel(nn.Module):
     def forward(self, inputs, labels, bd_gts):
         # --- SYNTHETIC ROLL AUGMENTATION (FIXED) ---
         B = inputs.size(0)
-        # Generate random roll angles between -30 and 30 degrees
-        roll_angles = (torch.rand(B, device=inputs.device) * 60.0) - 30.0
+        # Generate random roll angles between -45 and 45 degrees
+        roll_angles = (torch.rand(B, device=inputs.device) * 90.0) - 45.0
         
         # Rotate inputs (fill corners with ImageNet Mean to avoid pitch-black contrast shocks)
         rot_inputs = torch.stack([TF.rotate(inputs[i], float(roll_angles[i]), fill=[0.0, 0.0, 0.0]) for i in range(B)])
@@ -47,7 +47,9 @@ class AuRoRA2W_FullModel(nn.Module):
         rot_bd = torch.stack([TF.rotate(bd_gts[i].unsqueeze(0), float(roll_angles[i]), interpolation=TF.InterpolationMode.NEAREST, fill=[0.0]).squeeze(0) for i in range(B)])
 
         # --- FORWARD PASS (Injecting roll_angles into AuRoRA2W) ---
-        out = self.model(rot_inputs, roll_angles=roll_angles)
+        # APPLYING SIGN FLIP: IDFA mathematically needs the negated angle of the actual camera tilt
+        idfa_angles = -1.0 * roll_angles
+        out = self.model(rot_inputs, roll_angles=idfa_angles)
         
         # --- LOSS CALCULATION ---
         ph, pw = out[0].size(2), out[0].size(3)
@@ -209,7 +211,9 @@ def main():
             print("[!] Legacy checkpoint detected (No optimizer state). Dropping base learning rate to 0.0001 to prevent momentum shock.")
             base_lr = 0.0001
 
-    num_epochs = config.TRAIN.END_EPOCH
+    num_epochs = 20 # Override for proof-of-concept run
+    
+    print(f"[*] Set to train for {num_epochs} epochs.")
     for epoch in range(start_epoch, num_epochs):
         model.train()
         print(f"\n--- Epoch {epoch+1}/{num_epochs} ---")
@@ -235,6 +239,9 @@ def main():
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
+            
+            import time
+            time.sleep(0.005) # Yield to Windows DWM to prevent desktop lag
             
             if i % 10 == 0:
                 print(f"[Iter {i}/{len(trainloader)}] LR: {lr:.6f} | Loss: {loss.item():.4f}")

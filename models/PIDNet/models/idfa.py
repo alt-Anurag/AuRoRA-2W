@@ -31,52 +31,54 @@ class IDFAModule(nn.Module):
 
     def _generate_geometric_prior(self, b, h, w, roll_angles, device):
         """
-        Calculates the exact per-pixel (dx, dy) coordinate shifts needed to 
-        counteract the camera's physical roll angle.
+        Calculates the exact per-pixel (dy, dx) coordinate shifts needed to 
+        counteract the camera's physical roll angle, purely based on local 
+        kernel tap rotation around its own center.
         
         roll_angles: Tensor of shape (B,) in degrees
         """
-        # Create a meshgrid representing pixel coordinates
-        y, x = torch.meshgrid(
-            torch.arange(h, device=device, dtype=torch.float32),
-            torch.arange(w, device=device, dtype=torch.float32),
-            indexing='ij'
-        )
-        
-        # Center the coordinates (Origin at image center)
-        cx, cy = (w - 1) / 2.0, (h - 1) / 2.0
-        x_centered = x - cx
-        y_centered = y - cy
-        
-        # Convert roll angles to radians (shape: B, 1, 1)
-        theta = roll_angles.view(b, 1, 1).to(device) * (math.pi / 180.0)
+        # Convert roll angles to radians (shape: B, 1)
+        theta = roll_angles.view(b, 1).to(device) * (math.pi / 180.0)
         
         # Precompute cos and sin
         cos_t = torch.cos(theta)
         sin_t = torch.sin(theta)
         
-        # Calculate rotated coordinates
+        # Generate the k x k sampling grid around local kernel center (0,0)
+        k = self.kernel_size
+        pad = k // 2
+        
+        grid_y, grid_x = torch.meshgrid(
+            torch.arange(-pad, pad + 1, device=device, dtype=torch.float32),
+            torch.arange(-pad, pad + 1, device=device, dtype=torch.float32),
+            indexing='ij'
+        )
+        
+        # Flatten local grid to shape (1, k*k)
+        grid_y_flat = grid_y.flatten().unsqueeze(0)
+        grid_x_flat = grid_x.flatten().unsqueeze(0)
+        
+        # Calculate rotated kernel coordinates
         # x' = x * cos(theta) - y * sin(theta)
         # y' = x * sin(theta) + y * cos(theta)
-        x_rot = x_centered.unsqueeze(0) * cos_t - y_centered.unsqueeze(0) * sin_t
-        y_rot = x_centered.unsqueeze(0) * sin_t + y_centered.unsqueeze(0) * cos_t
+        x_rot = grid_x_flat * cos_t - grid_y_flat * sin_t
+        y_rot = grid_x_flat * sin_t + grid_y_flat * cos_t
         
-        # The offset is the difference between rotated and original coordinates
-        # Delta = Target - Source
-        dx = x_rot - x_centered.unsqueeze(0)
-        dy = y_rot - y_centered.unsqueeze(0)
+        # The offset is the difference between rotated and original local coordinates
+        dx = x_rot - grid_x_flat
+        dy = y_rot - grid_y_flat
         
-        # Stack into shape (B, 2, H, W)
-        # CRITICAL FIX: PyTorch DeformConv2d expects offsets in [dy, dx] order!
-        base_offsets = torch.cat([dy.unsqueeze(1), dx.unsqueeze(1)], dim=1)
+        # Interleave dy and dx for each tap.
+        # Stage 1 empirical tests confirmed torchvision expects [dy, dx] order.
+        offsets = torch.zeros(b, 2 * k * k, device=device, dtype=torch.float32)
+        offsets[:, 0::2] = dy
+        offsets[:, 1::2] = dx
         
-        # DCN expects offsets for every point in the kernel. 
-        # By repeating the central offset 9 times, we shift the entire 3x3 kernel 
-        # cleanly to the un-rotated physical location.
-        # Shape becomes (B, 18, H, W)
-        geom_offsets = base_offsets.repeat(1, self.kernel_size ** 2, 1, 1)
+        # Broadcast the fixed local offsets across all spatial locations (H, W)
+        geom_offsets = offsets.view(b, 2 * k * k, 1, 1).expand(b, 2 * k * k, h, w)
         
-        return geom_offsets
+        offsets = geom_offsets.contiguous()
+        return offsets
 
     def forward(self, x, roll_angles):
         """
@@ -115,8 +117,20 @@ if __name__ == "__main__":
     print(f"Input shape: {dummy_x.shape}")
     print(f"Output offsets shape: {offsets.shape} (Expected: B, 18, H, W)")
     
-    # Validation: If lean is 0, the geometric offset should be 0 everywhere
+    # Validation 1: Zero-angle identity
     max_offset_0 = offsets[0].abs().max().item()
     print(f"Max offset for 0 degree lean: {max_offset_0:.4f}")
     assert max_offset_0 < 1e-5, "Zero degree lean should have zero geometric offset!"
-    print("[OK] IDFA Module mathematical test passed.")
+    
+    # Validation 2: Boundedness at 30 degrees
+    max_offset_30 = offsets[1].abs().max().item()
+    print(f"Max offset for 30 degree lean: {max_offset_30:.4f}")
+    assert max_offset_30 < 1.5, f"Expected offset < 1.5px at 30deg, got {max_offset_30:.4f}"
+    
+    # Validation 3: Spatial uniformity
+    corner_offset = offsets[1, :, 0, 0]
+    center_offset = offsets[1, :, h//2, w//2]
+    diff = (corner_offset - center_offset).abs().max().item()
+    assert diff < 1e-5, "Offsets are not spatially uniform!"
+    
+    print("[OK] IDFA Module mathematical tests passed.")
