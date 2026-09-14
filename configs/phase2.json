@@ -1,0 +1,20 @@
+{
+  "image_size": [384, 640],
+  "channels": 64,
+  "neck_repeats": 2,
+  "alignment": "none",
+  "idfa_levels": [3],
+  "residual_bound": 0.5,
+  "pretrained_backbone": true,
+  "batch_size": 2,
+  "epochs": 40,
+  "learning_rate": 0.0003,
+  "weight_decay": 0.0001,
+  "workers": 0,
+  "seed": 42,
+  "max_roll_degrees": 35.0,
+  "sensor_dropout": 0.2,
+  "sensor_noise_degrees": 2.0,
+  "source_balance": true,
+  "loss_weights": {"classification": 1.0, "box": 2.0, "centerness": 1.0, "road": 1.0, "lane": 2.0}
+}

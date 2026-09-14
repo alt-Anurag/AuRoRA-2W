@@ -1,0 +1,56 @@
+{
+  "sources": [
+    {
+      "name": "idd_segmentation",
+      "root": "../data/phase2/raw/idd",
+      "index": "../data/phase2/indexes/idd.jsonl",
+      "format": "idd_label_ids",
+      "road_positive_ids": [0, 2],
+      "road_negative_ids": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34],
+      "upright_reference": false
+    },
+    {
+      "name": "idd_detection",
+      "root": "../data/phase2/raw/idd_detection",
+      "index": "../data/phase2/indexes/idd_detection.jsonl",
+      "format": "voc",
+      "voc_one_based": true,
+      "class_map": {"person": "person", "rider": "rider", "bicycle": "bicycle", "motorcycle": "motorcycle", "autorickshaw": "autorickshaw", "car": "car", "bus": "bus", "truck": "truck"},
+      "exhaustive_classes": [],
+      "upright_reference": false
+    },
+    {
+      "name": "rdd2022_india",
+      "root": "../data/phase2/raw/rdd2022_india",
+      "index": "../data/phase2/indexes/rdd2022_india.jsonl",
+      "format": "voc",
+      "voc_one_based": true,
+      "class_map": {"D40": "pothole"},
+      "exhaustive_classes": ["pothole"],
+      "upright_reference": false
+    },
+    {
+      "name": "kaggle_potholes",
+      "root": "../data/phase2/raw/kaggle_potholes",
+      "index": "../data/phase2/indexes/kaggle_potholes.jsonl",
+      "format": "yolo",
+      "class_map": {"0": "pothole"},
+      "exhaustive_classes": [],
+      "upright_reference": false
+    },
+    {
+      "name": "bdd100k_prepared",
+      "root": "../data/phase2/raw/bdd100k",
+      "index": "../data/phase2/indexes/bdd100k.jsonl",
+      "format": "masks",
+      "upright_reference": false
+    },
+    {
+      "name": "indian_two_wheeler_lanes",
+      "root": "../data/phase2/raw/rides",
+      "index": "../data/phase2/indexes/rides.jsonl",
+      "format": "masks",
+      "upright_reference": false
+    }
+  ]
+}

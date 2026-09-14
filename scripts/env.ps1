@@ -1,0 +1,25 @@
+$AuroraRoot = Split-Path $PSScriptRoot -Parent
+$env:TEMP = Join-Path $AuroraRoot '.tmp'
+$env:TMP = $env:TEMP
+$env:PIP_CACHE_DIR = Join-Path $AuroraRoot '.cache\pip'
+$env:TORCH_HOME = Join-Path $AuroraRoot '.cache\torch'
+$env:HF_HOME = Join-Path $AuroraRoot '.cache\huggingface'
+$env:MPLCONFIGDIR = Join-Path $AuroraRoot '.cache\matplotlib'
+$env:XDG_CACHE_HOME = Join-Path $AuroraRoot '.cache'
+$env:GRADLE_USER_HOME = Join-Path $AuroraRoot '.cache\gradle'
+if ((Test-Path (Join-Path $AuroraRoot '.tools\android-sdk')) -or (-not $env:ANDROID_HOME)) { $env:ANDROID_HOME = Join-Path $AuroraRoot '.tools\android-sdk' }
+$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
+$env:ANDROID_USER_HOME = Join-Path $AuroraRoot '.cache\android-user'
+$env:ANDROID_AVD_HOME = Join-Path $AuroraRoot '.cache\avd'
+$env:ANDROID_EMULATOR_HOME = Join-Path $AuroraRoot '.cache\android-emulator'
+$env:PYTHONNOUSERSITE = '1'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:CUDA_CACHE_PATH = Join-Path $AuroraRoot '.cache\cuda'
+$env:OMP_NUM_THREADS = '4'
+$env:MKL_NUM_THREADS = '4'
+$taskJdk = Get-ChildItem -LiteralPath (Join-Path $AuroraRoot '.tools\java') -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($taskJdk) { $env:JAVA_HOME = $taskJdk.FullName }
+$taskPathParts = @((Join-Path $AuroraRoot '.venv\Scripts'), (Join-Path $AuroraRoot '.tools\gradle-8.11.1\bin'), (Join-Path $env:ANDROID_HOME 'platform-tools'))
+if ($env:JAVA_HOME) { $taskPathParts += (Join-Path $env:JAVA_HOME 'bin') }
+$env:PATH = ($taskPathParts -join ';') + ';' + $env:PATH
+foreach ($taskCache in @($env:TEMP,$env:PIP_CACHE_DIR,$env:TORCH_HOME,$env:HF_HOME,$env:GRADLE_USER_HOME,$env:ANDROID_USER_HOME,$env:ANDROID_AVD_HOME,$env:ANDROID_EMULATOR_HOME,$env:CUDA_CACHE_PATH)) { New-Item -ItemType Directory -Path $taskCache -Force | Out-Null }

@@ -1,0 +1,119 @@
+{
+  "scope": "Saved software evidence, not Aurora road accuracy",
+  "phone": {
+    "version": "0.2.1-smooth-motion",
+    "tests": {
+      "jvm_passed": 42,
+      "physical_android_tests_passed": 4,
+      "lint_errors": 0,
+      "lint_warnings": 21,
+      "cpu_xnnpack_nnapi_auto_parity": true
+    },
+    "timing_protocol": "480x640 fixed pattern, compact live masks; median of 8 after 3 warmups; excludes camera and UI; not sustained performance",
+    "timing_runs": [
+      {
+        "device": "SM-G990B2",
+        "runtime": "ONNX CPU \u00b7 2 workers",
+        "mode": "compact_live",
+        "network_ms": "176.741719",
+        "pre_ms": "33.986171999999996",
+        "post_ms": "25.3608075"
+      },
+      {
+        "device": "SM-G990B2",
+        "runtime": "ONNX XNNPACK CPU \u00b7 2 workers",
+        "mode": "compact_live",
+        "network_ms": "153.0272395",
+        "pre_ms": "33.671875",
+        "post_ms": "25.6990105"
+      },
+      {
+        "device": "SM-G990B2",
+        "runtime": "ONNX NNAPI \u00b7 hardware + CPU fallback",
+        "mode": "compact_live",
+        "network_ms": "125.24348950000001",
+        "pre_ms": "33.35083349999999",
+        "post_ms": "25.5482555"
+      },
+      {
+        "device": "SM-G990B2",
+        "runtime": "ONNX CPU \u00b7 2 workers",
+        "mode": "compact_live",
+        "network_ms": "177.3914325",
+        "pre_ms": "34.280234",
+        "post_ms": "26.225911500000002"
+      },
+      {
+        "device": "SM-G990B2",
+        "runtime": "ONNX XNNPACK CPU \u00b7 2 workers",
+        "mode": "compact_live",
+        "network_ms": "156.5912505",
+        "pre_ms": "35.541667000000004",
+        "post_ms": "26.633983999999998"
+      },
+      {
+        "device": "SM-G990B2",
+        "runtime": "ONNX NNAPI \u00b7 hardware + CPU fallback",
+        "mode": "compact_live",
+        "network_ms": "125.4668225",
+        "pre_ms": "34.5814585",
+        "post_ms": "29.676302"
+      }
+    ],
+    "limits": [
+      "No road accuracy result or low-end phone performance claim",
+      "Live camera is independent of segmentation rate",
+      "Compact masks are display approximations",
+      "No training or fine-tuning performed",
+      "An initial emulator interactive run had a System UI timeout; physical user confirmed the fixes"
+    ]
+  },
+  "cuda_smoke": {
+    "scope": "CUDA software integration, not held-out accuracy, two-wheeler robustness or Android performance",
+    "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "variants": {
+      "none": {
+        "synthetic_smoke": true,
+        "trained_on_real_data": false,
+        "successful_optimizer_updates": 6,
+        "overflow_skipped_updates": 0,
+        "finite_train_loss": 3.7084052562713623,
+        "profile": {
+          "device": "cuda",
+          "amp": true,
+          "batch_size": 2,
+          "input_size": [
+            384,
+            640
+          ],
+          "median_training_step_s": 0.4061229999997522,
+          "images_per_second": 4.924616433940506,
+          "estimated_epoch_train_seconds": 4.061229999997522,
+          "peak_allocated_gib": 0.3710212707519531,
+          "note": "Random model throughput including loader, full optimizer step; first warmup excluded. Validation/checkpoint time extra. No trained accuracy or Android FPS."
+        }
+      },
+      "idfa": {
+        "synthetic_smoke": true,
+        "trained_on_real_data": false,
+        "successful_optimizer_updates": 6,
+        "overflow_skipped_updates": 0,
+        "finite_train_loss": 3.5029730796813965,
+        "profile": {
+          "device": "cuda",
+          "amp": true,
+          "batch_size": 2,
+          "input_size": [
+            384,
+            640
+          ],
+          "median_training_step_s": 0.4423839000000953,
+          "images_per_second": 4.520960188649653,
+          "estimated_epoch_train_seconds": 4.423839000000953,
+          "peak_allocated_gib": 0.45715951919555664,
+          "note": "Random model throughput including loader, full optimizer step; first warmup excluded. Validation/checkpoint time extra. No trained accuracy or Android FPS."
+        }
+      }
+    }
+  }
+}

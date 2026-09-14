@@ -1,0 +1,101 @@
+{
+  "images": 6,
+  "segmentation": {
+    "road": {
+      "foreground_iou": 0.7727272727272727,
+      "f1": 0.8717948717948718,
+      "valid_pixels": 36
+    },
+    "lane": {
+      "foreground_iou": 0.55,
+      "f1": 0.7096774193548387,
+      "valid_pixels": 64
+    }
+  },
+  "detection": {
+    "person": {
+      "ap50": 0.404997642621405,
+      "ap50_95": 0.404997642621405,
+      "gt": 4,
+      "labeled_images": 4,
+      "precision_at_score_0_3_iou_0_5": 0.25,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 12
+    },
+    "rider": {
+      "ap50": 0.45074507450745077,
+      "ap50_95": 0.4507450745074507,
+      "gt": 8,
+      "labeled_images": 6,
+      "precision_at_score_0_3_iou_0_5": 0.3333333333333333,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 16
+    },
+    "bicycle": {
+      "ap50": 0.404997642621405,
+      "ap50_95": 0.404997642621405,
+      "gt": 4,
+      "labeled_images": 4,
+      "precision_at_score_0_3_iou_0_5": 0.25,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 12
+    },
+    "motorcycle": {
+      "ap50": 0.45074507450745077,
+      "ap50_95": 0.4507450745074507,
+      "gt": 8,
+      "labeled_images": 6,
+      "precision_at_score_0_3_iou_0_5": 0.3333333333333333,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 16
+    },
+    "autorickshaw": {
+      "ap50": 0.404997642621405,
+      "ap50_95": 0.404997642621405,
+      "gt": 4,
+      "labeled_images": 4,
+      "precision_at_score_0_3_iou_0_5": 0.25,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 12
+    },
+    "car": {
+      "ap50": 0.45074507450745077,
+      "ap50_95": 0.4507450745074507,
+      "gt": 8,
+      "labeled_images": 6,
+      "precision_at_score_0_3_iou_0_5": 0.3333333333333333,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 16
+    },
+    "bus": {
+      "ap50": 0.404997642621405,
+      "ap50_95": 0.404997642621405,
+      "gt": 4,
+      "labeled_images": 4,
+      "precision_at_score_0_3_iou_0_5": 0.25,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 12
+    },
+    "truck": {
+      "ap50": 0.45074507450745077,
+      "ap50_95": 0.4507450745074507,
+      "gt": 8,
+      "labeled_images": 6,
+      "precision_at_score_0_3_iou_0_5": 0.3333333333333333,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 16
+    },
+    "pothole": {
+      "ap50": 0.404997642621405,
+      "ap50_95": 0.404997642621405,
+      "gt": 4,
+      "labeled_images": 4,
+      "precision_at_score_0_3_iou_0_5": 0.25,
+      "recall_at_score_0_3_iou_0_5": 1.0,
+      "false_positives_at_score_0_3_iou_0_5": 12
+    }
+  },
+  "map50": 0.4253298345707586,
+  "map50_95": 0.4253298345707585,
+  "protocol": "101-point AP, max 100 detections/image, class-exhaustive images only; not official COCO evaluation"
+}

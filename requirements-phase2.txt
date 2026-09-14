@@ -1,0 +1,10 @@
+# Install a matching torch/torchvision CPU or CUDA pair first; see README.md.
+torch==2.8.0
+torchvision==0.23.0
+numpy>=1.26,<3
+Pillow>=10,<13
+opencv-python>=4.10,<5
+pytest>=8,<10
+onnx>=1.17,<2
+onnxruntime>=1.20,<2
+matplotlib>=3.9,<4  # Legacy BDD path-semantics verification

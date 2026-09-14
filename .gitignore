@@ -1,34 +1,36 @@
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Datasets and Models (Very Large Files)
-models/PIDNet/data/
-models/PIDNet/pretrained_models/
-data/raw_video/
-data/raw_imu/
-
-# IDEs
-.vscode/
-.idea/
-
-# Logs, Outputs, and Large Media
+.venv/
+.tools/
+.cache/
+.tmp/
+data/
 output/
 log/
-data/synced/
-*.pt
-*.mp4
-*.png
+artifacts/
+third_party/
+__pycache__/
+.pytest_cache/
+*.py[cod]
 *.log
-wait_for_120.ps1
-
+.gradle/
+**/build/
+local.properties
+.idea/
+android/app/src/main/assets/
+android/app/src/androidTest/assets/
+*.apk
+*.aab
+*.onnx
+*.pt
+*.pth
+*.zip
+*.mp4
+*.docx
+*.pdf
+.env
+.env.*
+*.pem
+*.key
+*.jks
+*.keystore
+*credentials*.json
+*cookies*

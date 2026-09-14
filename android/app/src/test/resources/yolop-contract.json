@@ -1,0 +1,92 @@
+{
+  "format_version": 3,
+  "model_family": "yolop_segmentation",
+  "display_name": "YOLOP 320 baseline",
+  "layout": "NCHW",
+  "color": "RGB",
+  "image_shape": [
+    1,
+    3,
+    320,
+    320
+  ],
+  "dtype": "float32",
+  "classes": [],
+  "alignment": "none",
+  "mean": [
+    0.48500001430511475,
+    0.4560000002384186,
+    0.4059999883174896
+  ],
+  "std": [
+    0.2290000021457672,
+    0.2240000069141388,
+    0.22499999403953552
+  ],
+  "pixel_scale": 255,
+  "letterbox": {
+    "pad_value": [
+      114,
+      114,
+      114
+    ],
+    "dimension_rounding": "ties_to_even",
+    "resize": "bilinear_half_pixel",
+    "placement": "center_floor_left_top",
+    "independent_xy_scale_after_rounding": true
+  },
+  "input_names": [
+    "image"
+  ],
+  "input_shapes": {
+    "image": [
+      1,
+      3,
+      320,
+      320
+    ]
+  },
+  "outputs": [
+    "road_logits",
+    "lane_logits"
+  ],
+  "output_shapes": {
+    "road_logits": [
+      1,
+      1,
+      320,
+      320
+    ],
+    "lane_logits": [
+      1,
+      1,
+      320,
+      320
+    ]
+  },
+  "mask_stride": 1,
+  "mask_projection": "sigmoid_then_crop_bilinear_threshold",
+  "mask_scores": "foreground_minus_background_presigmoid",
+  "supervised_tasks": [
+    "road",
+    "lane"
+  ],
+  "supervised_detection_classes": [],
+  "training_status": "pretrained",
+  "trained_on_real_data": true,
+  "live_inference_allowed": true,
+  "synthetic_smoke": false,
+  "idd_finetuned": false,
+  "model_sha256": "fbc8e1ec26eae4cb62a62241e7e6d64c0db8cd3327ac7c95dabb23e8411e051b",
+  "source": {
+    "repository": "https://github.com/hustvl/YOLOP",
+    "commit": "8d8f68df318c71f01d6f813c024df646c7d1978f",
+    "onnx_path": "weights/yolop-320-320.onnx",
+    "onnx_sha256": "86d6e8b6dfdef195c061e9bcad82d9487bb5ee1ac4a1cf9a3dc4736657a07369",
+    "training_dataset": "BDD100K",
+    "license": "MIT",
+    "license_text": "MIT License\n\nCopyright (c) 2021 Hust Visual Learning Team\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
+  },
+  "limitations": "Pretrained road/lane baseline. No IDD fine-tuning, pothole head, detection or IMU fusion. Phone speed and night accuracy unvalidated.",
+  "preprocessing_note": "Mobile bilinear resize differs from official standalone ONNX INTER_AREA demo; static input resolution changes require evaluation."
+}
